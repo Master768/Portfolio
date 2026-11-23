@@ -54,7 +54,7 @@ export const PROFILE_INFO = {
   name: 'Ravindran A',
   title: 'AI Engineer',
   phone: '+91 8217561571',
-  email: 'ravindran1245@outlook.com',
+  email: 'ravindran125@outlook.com',
   githubUsername: 'Master768',
   githubUrl: 'https://github.com/Master768',
   linkedinUrl: 'https://www.linkedin.com/in/ravindran-a-892377248',
