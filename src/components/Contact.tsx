@@ -79,7 +79,7 @@ export const Contact: React.FC = () => {
 
     // 1. Attempt EmailJS background dispatch if keys are configured
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_p8txu85';
-    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_contact';
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_63c6pgs';
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'z7Q_j2X1_ydDtQil5';
 
     if (serviceId && templateId && publicKey) {
