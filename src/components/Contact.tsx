@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { Mail, Send, Copy, Check, MessageSquare, Phone, CheckCircle2, Loader2, Sparkles, ExternalLink } from 'lucide-react';
+import { Mail, Send, Copy, Check, MessageSquare, Phone, CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { GithubIcon, LinkedinIcon } from './SocialIcons';
 import { PROFILE_INFO } from '../data/education';
 import confetti from 'canvas-confetti';
 import emailjs from '@emailjs/browser';
-
-type EmailPlatform = 'outlook' | 'gmail' | 'default';
 
 export const Contact: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,15 +13,11 @@ export const Contact: React.FC = () => {
     message: ''
   });
 
-  const [emailPlatform, setEmailPlatform] = useState<EmailPlatform>('outlook');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success'>('idle');
-  const [lastSubmittedData, setLastSubmittedData] = useState<{
-    subject: string;
-    body: string;
-  } | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [sentSenderName, setSentSenderName] = useState('');
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -50,80 +44,46 @@ export const Contact: React.FC = () => {
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
-  const getPlatformUrl = (platform: EmailPlatform, subject: string, body: string) => {
-    const encodedTo = encodeURIComponent(PROFILE_INFO.email);
-    const encodedSubject = encodeURIComponent(subject);
-    const encodedBody = encodeURIComponent(body);
-
-    switch (platform) {
-      case 'outlook':
-        return `https://outlook.live.com/mail/0/deeplink/compose?to=${encodedTo}&subject=${encodedSubject}&body=${encodedBody}`;
-      case 'gmail':
-        return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodedTo}&su=${encodedSubject}&body=${encodedBody}`;
-      case 'default':
-      default:
-        return `mailto:${PROFILE_INFO.email}?subject=${encodedSubject}&body=${encodedBody}`;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
+    setSubmissionStatus('idle');
 
-    const fullBody = `Hi Ravindran,\n\n${formData.message}\n\n---\nSender: ${formData.name}\nEmail: ${formData.email}`;
-    const subject = `[Portfolio] ${formData.subject}`;
-
-    setLastSubmittedData({ subject, body: fullBody });
-
-    // 1. Attempt EmailJS background dispatch if keys are configured
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_p8txu85';
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_63c6pgs';
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'z7Q_j2X1_ydDtQil5';
 
-    if (serviceId && templateId && publicKey) {
-      try {
-        await emailjs.send(
-          serviceId,
-          templateId,
-          {
-            from_name: formData.name,
-            from_email: formData.email,
-            reply_to: formData.email,
-            subject: formData.subject,
-            message: formData.message,
-            to_email: PROFILE_INFO.email,
-            to_name: 'Ravindran',
-          },
-          publicKey
-        );
-      } catch (emailErr) {
-        console.warn('EmailJS background dispatch notification:', emailErr);
-      }
-    }
-
-    // 2. Redirect the user to their selected email/Outlook platform pre-filled
-    const redirectUrl = getPlatformUrl(emailPlatform, subject, fullBody);
-    
-    // Open chosen platform in new tab
-    const newWindow = window.open(redirectUrl, '_blank');
-    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-      // If popup was blocked by browser, fallback to direct location redirect for default mailto
-      if (emailPlatform === 'default') {
-        window.location.href = redirectUrl;
-      }
-    }
-
-    // 3. Update in-place status with success feedback and confetti
-    setSubmissionStatus('success');
-    setFormData({ name: '', email: '', subject: '', message: '' });
-
     try {
-      confetti({ particleCount: 60, spread: 75, origin: { y: 0.7 } });
-    } catch (_) {}
+      await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          reply_to: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          to_email: PROFILE_INFO.email,
+          to_name: 'Ravindran',
+        },
+        publicKey
+      );
 
-    setIsSubmitting(false);
+      setSentSenderName(formData.name);
+      setSubmissionStatus('success');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+
+      try {
+        confetti({ particleCount: 65, spread: 80, origin: { y: 0.7 } });
+      } catch (_) {}
+    } catch (err) {
+      console.error('EmailJS direct send error:', err);
+      setSubmissionStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -167,7 +127,7 @@ export const Contact: React.FC = () => {
           </span>
         </div>
 
-        {/* Contact Grid: Direct Info + Form */}
+        {/* Contact Grid: Direct Info + Direct EmailJS Form */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto">
           
           {/* Direct Channels Column */}
@@ -272,63 +232,30 @@ export const Contact: React.FC = () => {
             </div>
           </div>
 
-          {/* Contact Form with EmailJS & Platform Redirect */}
+          {/* Contact Form with Direct EmailJS Sending */}
           <div className="lg:col-span-7">
             {submissionStatus === 'success' ? (
-              <div className="p-8 rounded-2xl bg-zinc-950/80 border border-teal-500/40 backdrop-blur-md text-center space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                <div className="w-14 h-14 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-300 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(0,242,254,0.3)]">
-                  <CheckCircle2 className="w-8 h-8 text-teal-400" />
+              <div className="p-8 sm:p-10 rounded-2xl bg-zinc-950/80 border border-teal-500/40 backdrop-blur-md text-center space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 rounded-2xl bg-teal-500/15 border border-teal-500/30 text-teal-300 flex items-center justify-center mx-auto shadow-[0_0_25px_rgba(0,242,254,0.35)]">
+                  <CheckCircle2 className="w-9 h-9 text-teal-400" />
                 </div>
                 
                 <div>
-                  <h3 className="text-xl font-bold text-white tracking-tight">
-                    Opening Your Email Platform!
+                  <h3 className="text-2xl font-bold text-white tracking-tight">
+                    Message Sent Successfully!
                   </h3>
-                  <p className="text-sm text-zinc-300 max-w-md mx-auto leading-relaxed mt-1">
-                    Your message has been pre-filled. If the compose window didn't open automatically, choose your platform below to send directly to <strong className="text-teal-300">{PROFILE_INFO.email}</strong>:
+                  <p className="text-sm text-zinc-300 max-w-md mx-auto leading-relaxed mt-2">
+                    Thank you, <strong className="text-teal-300">{sentSenderName || 'there'}</strong>. Your message was directly delivered to <strong className="text-teal-300">{PROFILE_INFO.email}</strong>. I will get back to you promptly.
                   </p>
                 </div>
 
-                {/* Direct Platform Quick Launchers */}
-                {lastSubmittedData && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-md mx-auto pt-2">
-                    <a
-                      href={getPlatformUrl('outlook', lastSubmittedData.subject, lastSubmittedData.body)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-md"
-                    >
-                      <span>Outlook Web</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-
-                    <a
-                      href={getPlatformUrl('gmail', lastSubmittedData.subject, lastSubmittedData.body)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-semibold text-white bg-red-600 hover:bg-red-500 transition-colors shadow-md"
-                    >
-                      <span>Gmail Web</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-
-                    <a
-                      href={getPlatformUrl('default', lastSubmittedData.subject, lastSubmittedData.body)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-semibold text-zinc-200 bg-zinc-800 hover:bg-zinc-700 transition-colors border border-zinc-700 shadow-md"
-                    >
-                      <span>Mail App</span>
-                      <Mail className="w-3 h-3" />
-                    </a>
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-zinc-800/80">
+                <div className="pt-2">
                   <button
                     onClick={() => setSubmissionStatus('idle')}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-semibold text-teal-300 bg-teal-950/60 hover:bg-teal-900 border border-teal-500/40 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-mono font-semibold text-teal-300 bg-teal-950/60 hover:bg-teal-900 border border-teal-500/40 transition-colors cursor-pointer"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-teal-300" />
-                    <span>Send Another Inquiry</span>
+                    <span>Send Another Message</span>
                   </button>
                 </div>
               </div>
@@ -337,56 +264,17 @@ export const Contact: React.FC = () => {
                 onSubmit={handleSubmit}
                 className="p-6 sm:p-8 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 backdrop-blur-md space-y-4 shadow-xl"
               >
-                {/* Platform Redirect Selector */}
-                <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono text-teal-300 uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-teal-400" />
-                      Redirect Destination
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-500">
-                      Sends to {PROFILE_INFO.email}
+                {submissionStatus === 'error' && (
+                  <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs font-mono text-rose-300 flex items-center gap-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>
+                      Unable to send directly. You can also email directly at{' '}
+                      <a href={`mailto:${PROFILE_INFO.email}`} className="underline text-white font-bold">
+                        {PROFILE_INFO.email}
+                      </a>
                     </span>
                   </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEmailPlatform('outlook')}
-                      className={`px-3 py-2 rounded-lg text-xs font-mono font-medium transition-all text-center cursor-pointer ${
-                        emailPlatform === 'outlook'
-                          ? 'bg-blue-600/30 border border-blue-500 text-blue-200 shadow-[0_0_12px_rgba(59,130,246,0.3)]'
-                          : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
-                      }`}
-                    >
-                      Outlook Web
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setEmailPlatform('gmail')}
-                      className={`px-3 py-2 rounded-lg text-xs font-mono font-medium transition-all text-center cursor-pointer ${
-                        emailPlatform === 'gmail'
-                          ? 'bg-red-600/30 border border-red-500 text-red-200 shadow-[0_0_12px_rgba(239,68,68,0.3)]'
-                          : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
-                      }`}
-                    >
-                      Gmail Web
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setEmailPlatform('default')}
-                      className={`px-3 py-2 rounded-lg text-xs font-mono font-medium transition-all text-center cursor-pointer ${
-                        emailPlatform === 'default'
-                          ? 'bg-teal-600/30 border border-teal-500 text-teal-200 shadow-[0_0_12px_rgba(20,184,166,0.3)]'
-                          : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
-                      }`}
-                    >
-                      Default Mail
-                    </button>
-                  </div>
-                </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -478,7 +366,7 @@ export const Contact: React.FC = () => {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-teal-200" />
-                      <span>Sending & Redirecting...</span>
+                      <span>Sending Message...</span>
                     </>
                   ) : (
                     <>
