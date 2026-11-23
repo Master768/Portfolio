@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-base: #030508;
+    --bg-surface: #060913;
+    --bg-elevated: #0c1020;
+    --border-subtle: rgba(0, 242, 254, 0.15);
+    --border-strong: rgba(0, 242, 254, 0.4);
+    --accent-teal: #00f2fe;
+    --accent-indigo: #4facfe;
+    --accent-purple: #7928ca;
+    --accent-emerald: #10b981;
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background-color: #030508;
+    color: #e2e8f0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    background-color: #030508;
+    color: #cbd5e1;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(0, 242, 254, 0.35);
+    color: #ffffff;
+  }
+
+  /* Custom Sleek Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #030508;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #121c2e;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 242, 254, 0.25);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00f2fe;
+  }
+}
+
+/* Background Grids & Ambient Glow */
+.bg-grid-pattern {
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 242, 254, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 242, 254, 0.04) 1px, transparent 1px);
+}
+
+.bg-dot-pattern {
+  background-image: radial-gradient(rgba(0, 242, 254, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Glass Surface Utility */
+.glass-panel {
+  background: rgba(6, 9, 19, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 242, 254, 0.18);
+}
+
+.glass-panel-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(12, 16, 32, 0.95);
+  border-color: rgba(0, 242, 254, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 35px -10px rgba(0, 0, 0, 0.8), 0 0 25px -5px rgba(0, 242, 254, 0.25);
+}
