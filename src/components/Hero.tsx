@@ -117,7 +117,7 @@ export const Hero: React.FC = () => {
 
           </div>
 
-          {/* Right Column: 3D Hologram Card */}
+          {/* Right Column: Profile Portrait Card */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end">
             <ThreeAvatarHoloCard />
           </div>
